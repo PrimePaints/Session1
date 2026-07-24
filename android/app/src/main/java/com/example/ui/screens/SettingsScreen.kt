@@ -89,9 +89,7 @@ fun SettingsScreen(
     onSetHaptics: (Boolean) -> Unit,
     onSetThemeMode: (ThemeMode) -> Unit,
     onToggleProEntitlement: (Boolean) -> Unit,
-    onToggleUltraEntitlement: (Boolean) -> Unit = {},
-    onNavigateToAutoParentSettings: () -> Unit = {},
-    onNavigateToSmartHomeSettings: () -> Unit = {}
+    onNavigateToAutoParentSettings: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -182,7 +180,6 @@ fun SettingsScreen(
                     containerColor = when (userPreferences.tier) {
                         UserTier.FREE -> MaterialTheme.colorScheme.surfaceVariant
                         UserTier.PRO -> AmberAccent.copy(alpha = 0.12f)
-                        UserTier.ULTRA -> AmberAccent.copy(alpha = 0.22f)
                     }
                 ),
                 border = androidx.compose.foundation.BorderStroke(
@@ -210,7 +207,6 @@ fun SettingsScreen(
                             text = when (userPreferences.tier) {
                                 UserTier.FREE -> "Standard Tier (Free)"
                                 UserTier.PRO -> "Soundboard PRO Active"
-                                UserTier.ULTRA -> "Soundboard ULTRA Ecosystem"
                             },
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
@@ -220,7 +216,6 @@ fun SettingsScreen(
                             text = when (userPreferences.tier) {
                                 UserTier.FREE -> "Basic soundboard & local pads"
                                 UserTier.PRO -> "Auto-Parent AI + Unlimited Boards & Trimming"
-                                UserTier.ULTRA -> "Google Home Nest Speakers + Google Family Link Sync"
                             },
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -362,78 +357,6 @@ fun SettingsScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "Navigate to Auto-Parent Settings",
-                        tint = AmberAccent
-                    )
-                }
-            }
-
-            // GOOGLE HOME & FAMILY LINK (ULTRA)
-            Text(
-                text = "GOOGLE HOME & FAMILY LINK (ULTRA)",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
-            )
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 20.dp)
-                    .clickable { onNavigateToSmartHomeSettings() },
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(AmberAccent.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SpeakerGroup,
-                            contentDescription = "Google Home & Family Link",
-                            tint = AmberAccent,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Google Home & Family Link Hub",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(AmberAccent)
-                                    .padding(horizontal = 4.dp, vertical = 1.dp)
-                            ) {
-                                Text("ULTRA", fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color.Black)
-                            }
-                        }
-                        Text(
-                            text = "Cast to Nest speakers, Google Family Link screen locks & smart lights",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Navigate to Smart Home Settings",
                         tint = AmberAccent
                     )
                 }
@@ -729,10 +652,10 @@ fun SettingsScreen(
             text = {
                 Text(
                     "Soundboard is designed with privacy as a foundational principle.\n\n" +
-                    "• 100% On-Device Storage: All recorded audio clips, labels, and soundboards remain entirely on your device.\n" +
-                    "• No Network Transmissions: Soundboard never uploads your voice or personal recordings to any cloud server.\n" +
-                    "• Microphone Access: Microphone permission is requested solely to record short audio clips for your soundboard.\n" +
-                    "• Complete Data Ownership: You can export or delete your backup data at any time."
+                    "• Your recordings stay on your device: all audio clips, labels, and soundboards are stored only on this device and are never uploaded.\n" +
+                    "• Microphone: used to record your clips, and — only while you turn on Auto-Parent AI listening — to transcribe nearby speech to text on your device.\n" +
+                    "• AI matching sends text only: when Auto-Parent AI is enabled, the on-device transcript (never the audio itself) is sent to Google's Gemini API to choose which of your clips to play.\n" +
+                    "• You stay in control: Auto-Parent AI is off unless you turn it on, and you can export or delete your data at any time."
                 )
             },
             confirmButton = {
@@ -910,24 +833,15 @@ fun SettingsScreen(
         )
     }
 
-    // Pro / Ultra Tier Selection Dialog
+    // Pro Tier Selection Dialog
     if (showProUpsellDialog) {
         ProUpsellDialog(
             currentTier = userPreferences.tier,
             onDismiss = { showProUpsellDialog = false },
             onSelectTier = { selectedTier ->
                 when (selectedTier) {
-                    UserTier.FREE -> {
-                        onToggleProEntitlement(false)
-                        onToggleUltraEntitlement(false)
-                    }
-                    UserTier.PRO -> {
-                        onToggleProEntitlement(true)
-                        onToggleUltraEntitlement(false)
-                    }
-                    UserTier.ULTRA -> {
-                        onToggleUltraEntitlement(true)
-                    }
+                    UserTier.FREE -> onToggleProEntitlement(false)
+                    UserTier.PRO -> onToggleProEntitlement(true)
                 }
                 scope.launch {
                     snackbarHostState.showSnackbar("Switched to ${selectedTier.name} membership plan")

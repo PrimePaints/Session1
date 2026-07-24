@@ -25,16 +25,13 @@ import com.example.data.preferences.UserPreferences
 import com.example.data.preferences.UserPreferencesRepository
 import com.example.data.preferences.UserTier
 import com.example.data.repository.SoundboardRepository
-import com.example.smarthome.SmartHomeManager
 import com.example.ui.screens.AutoParentSettingsScreen
 import com.example.ui.screens.BoardManagementDialog
 import com.example.ui.screens.BoardScreen
 import com.example.ui.screens.ProUpsellDialog
 import com.example.ui.screens.SettingsScreen
-import com.example.ui.screens.SmartHomeSettingsScreen
 import com.example.ui.theme.SoundboardTheme
 import com.example.ui.theme.ThemeMode
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -44,7 +41,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var audioPlayer: AudioPlayer
     private lateinit var audioRecorder: AudioRecorder
     private lateinit var autoParentEngine: AutoParentEngine
-    private lateinit var smartHomeManager: SmartHomeManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,7 +51,6 @@ class MainActivity : ComponentActivity() {
         audioPlayer = AudioPlayer(applicationContext)
         audioRecorder = AudioRecorder(applicationContext)
         autoParentEngine = AutoParentEngine(applicationContext, audioPlayer)
-        smartHomeManager = SmartHomeManager(applicationContext)
 
         setContent {
             val scope = rememberCoroutineScope()
@@ -149,14 +144,8 @@ class MainActivity : ComponentActivity() {
                             onToggleProEntitlement = { isPro ->
                                 scope.launch { preferencesRepo.setProEntitlement(isPro) }
                             },
-                            onToggleUltraEntitlement = { isUltra ->
-                                scope.launch { preferencesRepo.setUltraEntitlement(isUltra) }
-                            },
                             onNavigateToAutoParentSettings = {
                                 navController.navigate("auto_parent_settings")
-                            },
-                            onNavigateToSmartHomeSettings = {
-                                navController.navigate("smarthome_settings")
                             }
                         )
                     }
@@ -171,15 +160,6 @@ class MainActivity : ComponentActivity() {
                             onBackClick = { navController.popBackStack() },
                             onShowProUpsell = { showProUpsell = true },
                             isPro = userPrefs.isPro
-                        )
-                    }
-
-                    composable("smarthome_settings") {
-                        SmartHomeSettingsScreen(
-                            smartHomeManager = smartHomeManager,
-                            onBackClick = { navController.popBackStack() },
-                            onShowUltraUpsell = { showProUpsell = true },
-                            isUltra = userPrefs.isUltra
                         )
                     }
                 }
@@ -225,17 +205,8 @@ class MainActivity : ComponentActivity() {
                         onSelectTier = { selectedTier ->
                             scope.launch {
                                 when (selectedTier) {
-                                    UserTier.FREE -> {
-                                        preferencesRepo.setProEntitlement(false)
-                                        preferencesRepo.setUltraEntitlement(false)
-                                    }
-                                    UserTier.PRO -> {
-                                        preferencesRepo.setProEntitlement(true)
-                                        preferencesRepo.setUltraEntitlement(false)
-                                    }
-                                    UserTier.ULTRA -> {
-                                        preferencesRepo.setUltraEntitlement(true)
-                                    }
+                                    UserTier.FREE -> preferencesRepo.setProEntitlement(false)
+                                    UserTier.PRO -> preferencesRepo.setProEntitlement(true)
                                 }
                             }
                         }

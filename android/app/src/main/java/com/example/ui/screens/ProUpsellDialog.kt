@@ -1,7 +1,6 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,13 +12,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.SpeakerGroup
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -77,7 +73,7 @@ fun ProUpsellDialog(
         text = {
             Column {
                 Text(
-                    text = "Choose the tier that fits your parenting & soundboard needs:",
+                    text = "Unlock the full soundboard with a one-time purchase:",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp
                 )
@@ -102,17 +98,9 @@ fun ProUpsellDialog(
 
                     TierTabButton(
                         title = "PRO",
-                        badge = "$4.99/mo",
+                        badge = "One-time",
                         isSelected = selectedTierTab == UserTier.PRO,
                         onClick = { selectedTierTab = UserTier.PRO },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    TierTabButton(
-                        title = "ULTRA",
-                        badge = "$9.99/mo",
-                        isSelected = selectedTierTab == UserTier.ULTRA,
-                        onClick = { selectedTierTab = UserTier.ULTRA },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -130,8 +118,7 @@ fun ProUpsellDialog(
                                 "Custom Audio Recording" to true,
                                 "1 Home-Screen Widget" to true,
                                 "Auto-Parent AI Listening" to false,
-                                "Google Home Nest Broadcast" to false,
-                                "Google Family Link Screen Sync" to false
+                                "Unlimited Boards & Trimming" to false
                             ),
                             accentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -140,30 +127,14 @@ fun ProUpsellDialog(
                     UserTier.PRO -> {
                         TierDetailCard(
                             tierName = "Soundboard PRO",
-                            description = "Full AI local listening engine + unlimited audio customization.",
+                            description = "Everything unlocked with a single one-time purchase — no subscription.",
                             features = listOf(
                                 "Unlimited Boards & Sound Clips" to true,
                                 "⚡ Auto-Parent AI Listening Mode" to true,
                                 "Audio Waveform Trimming & Edits" to true,
                                 "Custom Acoustic Trigger Tags" to true,
-                                "Google Home Nest Broadcast" to false,
-                                "Google Family Link Screen Sync" to false
-                            ),
-                            accentColor = AmberAccent
-                        )
-                    }
-
-                    UserTier.ULTRA -> {
-                        TierDetailCard(
-                            tierName = "Soundboard ULTRA Ecosystem",
-                            description = "Complete smart home integration with Google Home & Family Link.",
-                            features = listOf(
-                                "Everything in PRO included" to true,
-                                "📢 Google Home Nest Speaker Broadcast" to true,
-                                "📱 Google Family Link Screen Time Pause" to true,
-                                "💡 Smart Home Lighting Routines" to true,
-                                "Multi-Device Family Cloud Sync" to true,
-                                "Priority Gemini AI Processing" to true
+                                "All Themes & Colour Packs" to true,
+                                "One-time purchase — no subscription" to true
                             ),
                             accentColor = AmberAccent
                         )
@@ -181,7 +152,6 @@ fun ProUpsellDialog(
                     containerColor = when (selectedTierTab) {
                         UserTier.FREE -> MaterialTheme.colorScheme.surfaceVariant
                         UserTier.PRO -> RecRed
-                        UserTier.ULTRA -> AmberAccent
                     }
                 )
             ) {
@@ -189,11 +159,10 @@ fun ProUpsellDialog(
                     text = when {
                         currentTier == selectedTierTab -> "Current Plan"
                         selectedTierTab == UserTier.FREE -> "Switch to Free"
-                        selectedTierTab == UserTier.PRO -> "Unlock PRO"
-                        else -> "Unlock ULTRA Ecosystem"
+                        else -> "Unlock PRO"
                     },
                     fontWeight = FontWeight.Bold,
-                    color = if (selectedTierTab == UserTier.ULTRA) Color.Black else Color.White
+                    color = Color.White
                 )
             }
         },

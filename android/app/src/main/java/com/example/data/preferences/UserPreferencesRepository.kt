@@ -15,8 +15,7 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "us
 
 enum class UserTier {
     FREE,
-    PRO,
-    ULTRA
+    PRO
 }
 
 data class UserPreferences(
@@ -24,15 +23,10 @@ data class UserPreferences(
     val widgetBoardId: String?,
     val hapticsEnabled: Boolean,
     val themeMode: ThemeMode,
-    val isPro: Boolean,
-    val isUltra: Boolean = false
+    val isPro: Boolean
 ) {
     val tier: UserTier
-        get() = when {
-            isUltra -> UserTier.ULTRA
-            isPro -> UserTier.PRO
-            else -> UserTier.FREE
-        }
+        get() = if (isPro) UserTier.PRO else UserTier.FREE
 }
 
 class UserPreferencesRepository(private val context: Context) {
@@ -43,7 +37,6 @@ class UserPreferencesRepository(private val context: Context) {
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val IS_PRO = booleanPreferencesKey("is_pro")
-        val IS_ULTRA = booleanPreferencesKey("is_ultra")
     }
 
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data.map { preferences ->
@@ -57,15 +50,13 @@ class UserPreferencesRepository(private val context: Context) {
             ThemeMode.CONSOLE_DARK
         }
         val isPro = preferences[PreferenceKeys.IS_PRO] ?: false
-        val isUltra = preferences[PreferenceKeys.IS_ULTRA] ?: false
 
         UserPreferences(
             activeBoardId = activeBoardId,
             widgetBoardId = widgetBoardId,
             hapticsEnabled = hapticsEnabled,
             themeMode = themeMode,
-            isPro = isPro || isUltra,
-            isUltra = isUltra
+            isPro = isPro
         )
     }
 
@@ -96,18 +87,6 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setProEntitlement(isPro: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferenceKeys.IS_PRO] = isPro
-            if (!isPro) {
-                preferences[PreferenceKeys.IS_ULTRA] = false
-            }
-        }
-    }
-
-    suspend fun setUltraEntitlement(isUltra: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferenceKeys.IS_ULTRA] = isUltra
-            if (isUltra) {
-                preferences[PreferenceKeys.IS_PRO] = true
-            }
         }
     }
 }
