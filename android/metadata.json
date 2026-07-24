@@ -1,0 +1,6 @@
+{
+  "name": "Soundboard",
+  "description": "A personal soundboard app to record, organize, and play custom audio clips.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
