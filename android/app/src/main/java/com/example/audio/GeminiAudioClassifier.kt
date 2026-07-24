@@ -1,6 +1,5 @@
 package com.example.audio
 
-import android.util.Base64
 import android.util.Log
 import com.example.BuildConfig
 import com.squareup.moshi.Moshi
@@ -11,7 +10,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.File
 import java.util.concurrent.TimeUnit
 
 data class AutoParentMatchResult(
@@ -20,112 +18,35 @@ data class AutoParentMatchResult(
     val confidence: Float
 )
 
+/**
+ * Sends ONLY TEXT to Gemini Flash Lite to pick the best matching soundboard clip.
+ *
+ * PRIVACY: This class never transmits audio. Ambient speech is transcribed to text
+ * ON-DEVICE (see [OnDeviceTranscriber]); only that resulting text — plus a short
+ * locally-derived tone hint — is ever sent off the device. Users' recordings and any
+ * captured microphone audio always remain on the phone.
+ */
 object GeminiAudioClassifier {
     private const val TAG = "GeminiAudioClassifier"
+    // Gemini Flash Lite: chosen for the fastest, lowest-latency responses.
     private const val MODEL_NAME = "gemini-3.1-flash-lite"
     private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/$MODEL_NAME:generateContent"
 
     private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
         .build()
 
     private val moshi = Moshi.Builder()
         .addLast(KotlinJsonAdapterFactory())
         .build()
 
-    suspend fun classifyAudio(
-        audioFile: File,
-        availablePads: List<String>,
-        feedbackRules: List<String> = emptyList(),
-        acousticHint: String? = null
-    ): AutoParentMatchResult = withContext(Dispatchers.IO) {
-        if (availablePads.isEmpty()) {
-            return@withContext AutoParentMatchResult(null, "No sound clips available", 0f)
-        }
-
-        val apiKey = BuildConfig.GEMINI_API_KEY
-        if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
-            Log.w(TAG, "Gemini API key missing, falling back to heuristic matching")
-            return@withContext fallbackHeuristicAudioMatch(audioFile, availablePads)
-        }
-
-        try {
-            val base64Audio = Base64.encodeToString(audioFile.readBytes(), Base64.NO_WRAP)
-            val padsFormatted = availablePads.joinToString(", ") { "\"$it\"" }
-            val feedbackPromptStr = if (feedbackRules.isNotEmpty()) {
-                "\nUser Training & Feedback Rules:\n" + feedbackRules.joinToString("\n") { "- $it" } + "\n"
-            } else ""
-            val acousticHintStr = if (!acousticHint.isNullOrBlank()) {
-                "\nLocal TFLite Signal Analysis Trigger: $acousticHint\n"
-            } else ""
-
-            val prompt = """
-                You are Auto-Parent, a fast low-latency AI assistant for parents. Analyze this audio clip of children.
-                The parent has recorded voice clips on their soundboard with the following exact labels:
-                [$padsFormatted]
-                $feedbackPromptStr$acousticHintStr
-                
-                CRITICAL INSTRUCTIONS FOR CONTEXTUAL MATCHING:
-                1. Listen carefully and transcribe any spoken words, nagging, whining, requests, or behavior in the audio.
-                2. Analyze the SUBJECT and CONTEXT of what the children are saying/doing (e.g. complaining about food/veggies, refusing bedtime, nagging for screens/toys, arguing over items, asking for candy, crying, bad manners, or shouting).
-                3. Map the context to the MOST APPROPRIATE parent clip label from [$padsFormatted].
-                   - Match semantic meaning, even if wording differs! (e.g., child complains "I don't want to eat broccoli" -> match "Eat your veggies" or "Finish your plate"; child nags "Can I play on your phone?" -> match "No tablet" or "Go play outside"; child yells "Gimme that toy!" -> match "Stop fighting" or "Share your toys").
-                4. DO NOT default to a generic "No Shouting" clip if a more specific contextual clip matches what the child is actually saying/nagging about. Tailor your selection specifically to the parent's available clips!
-                5. If NO clip matches the context at all, return null for matchedLabel.
-
-                Respond ONLY in JSON with this exact format:
-                {
-                  "matchedLabel": "<exact string from available labels list, or null>",
-                  "detectedSituation": "<short description of what was heard/said in audio>",
-                  "confidence": <float between 0.0 and 1.0>
-                }
-            """.trimIndent()
-
-            val jsonPayload = """
-                {
-                  "contents": [
-                    {
-                      "parts": [
-                        { "text": ${escapeJson(prompt)} },
-                        {
-                          "inlineData": {
-                            "mimeType": "audio/mp4",
-                            "data": "$base64Audio"
-                          }
-                        }
-                      ]
-                    }
-                  ],
-                  "generationConfig": {
-                    "temperature": 0.1,
-                    "maxOutputTokens": 60,
-                    "responseMimeType": "application/json"
-                  }
-                }
-            """.trimIndent()
-
-            val request = Request.Builder()
-                .url("$BASE_URL?key=$apiKey")
-                .post(jsonPayload.toRequestBody("application/json".toMediaType()))
-                .build()
-
-            val response = okHttpClient.newCall(request).execute()
-            val responseString = response.body?.string() ?: ""
-
-            if (!response.isSuccessful || responseString.isBlank()) {
-                Log.e(TAG, "API call failed: ${response.code} $responseString")
-                return@withContext fallbackHeuristicAudioMatch(audioFile, availablePads)
-            }
-
-            return@withContext parseGeminiJsonResponse(responseString, availablePads)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in Gemini audio classification", e)
-            return@withContext fallbackHeuristicAudioMatch(audioFile, availablePads)
-        }
-    }
-
+    /**
+     * Matches a text description of the situation (e.g. an on-device transcript of what
+     * a child said, optionally with a tone hint) to the best available clip label.
+     * Text only — no audio is sent.
+     */
     suspend fun classifySituationText(
         situationText: String,
         availablePads: List<String>,
@@ -153,10 +74,13 @@ object GeminiAudioClassifier {
                 [$padsFormatted]
                 $feedbackPromptStr
                 Match the situation to the BEST matching voice clip label from the list.
+                Match semantic meaning, even if wording differs (e.g. a child complaining
+                about broccoli -> "Eat your veggies"; nagging for a tablet -> "No screens").
+                If nothing fits, return null for matchedLabel.
                 Respond strictly in JSON:
                 {
                   "matchedLabel": "<exact label from list, or null if none fits>",
-                  "detectedSituation": "$situationText",
+                  "detectedSituation": "<short description of the situation>",
                   "confidence": <float 0.0 to 1.0>
                 }
             """.trimIndent()
@@ -171,7 +95,8 @@ object GeminiAudioClassifier {
                     }
                   ],
                   "generationConfig": {
-                    "temperature": 0.2,
+                    "temperature": 0.1,
+                    "maxOutputTokens": 150,
                     "responseMimeType": "application/json"
                   }
                 }
@@ -186,6 +111,7 @@ object GeminiAudioClassifier {
             val responseString = response.body?.string() ?: ""
 
             if (!response.isSuccessful || responseString.isBlank()) {
+                Log.e(TAG, "API call failed: ${response.code} $responseString")
                 return@withContext fallbackTextMatch(situationText, availablePads)
             }
 
@@ -229,7 +155,7 @@ object GeminiAudioClassifier {
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing Gemini response: $rawJsonResponse", e)
-            return AutoParentMatchResult(null, "Unrecognized audio", 0f)
+            return AutoParentMatchResult(null, "Unrecognized situation", 0f)
         }
     }
 
@@ -247,36 +173,10 @@ object GeminiAudioClassifier {
         }
     }
 
-    private fun fallbackHeuristicAudioMatch(
-        audioFile: File,
-        availablePads: List<String>
-    ): AutoParentMatchResult {
-        if (!audioFile.exists() || audioFile.length() < 1000) {
-            return AutoParentMatchResult(null, "Quiet ambient room", 0.1f)
-        }
-
-        val shoutPad = availablePads.firstOrNull {
-            it.contains("shout", ignoreCase = true) ||
-            it.contains("quiet", ignoreCase = true) ||
-            it.contains("stop", ignoreCase = true) ||
-            it.contains("no", ignoreCase = true)
-        }
-
-        return if (shoutPad != null) {
-            AutoParentMatchResult(
-                matchedLabel = shoutPad,
-                detectedSituation = "Elevated sound level detected",
-                confidence = 0.75f
-            )
-        } else {
-            AutoParentMatchResult(
-                matchedLabel = null,
-                detectedSituation = "Ambient sound detected",
-                confidence = 0.20f
-            )
-        }
-    }
-
+    /**
+     * Offline fallback when no API key is set or the network call fails. Runs entirely
+     * on-device using simple keyword/topic heuristics.
+     */
     private fun fallbackTextMatch(
         text: String,
         availablePads: List<String>

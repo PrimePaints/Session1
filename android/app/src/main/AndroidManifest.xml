@@ -3,8 +3,18 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- INTERNET is used only to send TEXT (on-device transcripts) to Gemini Flash Lite.
+         Microphone audio and users' recordings are never transmitted. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Required on Android 11+ so SpeechRecognizer can bind to the on-device
+         speech recognition service for local (offline) transcription. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="true"

@@ -1,8 +1,6 @@
 package com.example.audio
 
 import android.content.Context
-import android.media.MediaRecorder
-import android.os.Build
 import android.util.Log
 import com.example.data.db.PadEntity
 import kotlinx.coroutines.CoroutineScope
@@ -14,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
@@ -39,6 +38,15 @@ data class AutoParentState(
     val statusMessage: String = "Auto-Parent Standing By"
 )
 
+/**
+ * Continuously listens for children's speech and auto-plays the best matching clip.
+ *
+ * PRIVACY MODEL: microphone audio is transcribed to text ON-DEVICE via
+ * [OnDeviceTranscriber]; the raw audio never leaves the phone. Only the resulting
+ * transcript (plus a short, locally-derived loudness/tone hint) is sent to Gemini
+ * Flash Lite to choose which recorded clip to play. The user's own recordings are
+ * only ever read from local storage and played locally.
+ */
 class AutoParentEngine(
     private val context: Context,
     private val audioPlayer: AudioPlayer
@@ -50,8 +58,10 @@ class AutoParentEngine(
 
     private val scope = CoroutineScope(Dispatchers.Main)
     private var listeningJob: Job? = null
-    private var mediaRecorder: MediaRecorder? = null
-    private var listeningTempFile: File? = null
+
+    // On-device speech-to-text. Audio is transcribed locally; only text is sent onward.
+    private val transcriber = OnDeviceTranscriber(context)
+
     private var lastTriggerTimeMs: Long = 0L
 
     fun toggleListening(
@@ -79,6 +89,13 @@ class AutoParentEngine(
             return
         }
 
+        if (!transcriber.isAvailable()) {
+            _state.value = _state.value.copy(
+                statusMessage = "Speech recognition isn't available on this device"
+            )
+            return
+        }
+
         stopListeningInternal()
 
         _state.value = _state.value.copy(
@@ -86,160 +103,105 @@ class AutoParentEngine(
             statusMessage = "Listening for vocal inputs..."
         )
 
-        listeningJob = scope.launch(Dispatchers.IO) {
-            val recDir = File(context.cacheDir, "autoparent").apply { mkdirs() }
-
+        // SpeechRecognizer must be driven on the main thread; the transcriber handles
+        // that internally, so we run the loop on the main dispatcher.
+        listeningJob = scope.launch(Dispatchers.Main) {
             while (isActive && _state.value.isListening) {
                 try {
-                    val tempChunk = File(recDir, "chunk_${System.currentTimeMillis()}.m4a")
-                    listeningTempFile = tempChunk
+                    // 1) Capture speech and transcribe it locally. peakRms tracks the
+                    //    loudest moment so we can derive an on-device tone hint.
+                    var peakRms = 0f
+                    val transcript = transcriber.transcribeOnce { norm ->
+                        if (norm > peakRms) peakRms = norm
+                        _state.value = _state.value.copy(ambientAmplitude = norm)
+                    }
 
-                    val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        MediaRecorder(context)
+                    if (!isActive || !_state.value.isListening) break
+                    _state.value = _state.value.copy(ambientAmplitude = 0f)
+
+                    if (transcript.isNullOrBlank()) {
+                        _state.value = _state.value.copy(statusMessage = "Listening for vocal inputs...")
+                        delay(120)
+                        continue
+                    }
+
+                    // 2) Local, on-device tone classification from loudness only (no audio leaves).
+                    val acoustic = TFLiteAcousticClassifier.analyzeAmplitude(peakRms)
+                    val situation = if (acoustic.category != AcousticCategory.QUIET_AMBIENT) {
+                        "$transcript [tone: ${acoustic.category.name}]"
                     } else {
-                        @Suppress("DEPRECATION")
-                        MediaRecorder()
+                        transcript
                     }
 
-                    recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
-                    recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                    recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                    recorder.setAudioChannels(1)
-                    recorder.setAudioSamplingRate(22050)
-                    recorder.setOutputFile(tempChunk.absolutePath)
+                    _state.value = _state.value.copy(
+                        isAnalyzing = true,
+                        statusMessage = "Analyzing: \"$transcript\"..."
+                    )
 
-                    recorder.prepare()
-                    recorder.start()
-                    mediaRecorder = recorder
-
-                    // Adaptive chunk sampling: Base duration 1200ms, early stop 500ms after a volume spike (> 0.30f)
-                    var maxAmplitude = 0
-                    val sampleStartTime = System.currentTimeMillis()
-                    var spikeDetectedTimeMs = 0L
-
-                    while (isActive && _state.value.isListening) {
-                        val elapsed = System.currentTimeMillis() - sampleStartTime
-                        try {
-                            val amp = recorder.maxAmplitude
-                            if (amp > maxAmplitude) maxAmplitude = amp
-
-                            val normAmp = (amp / 32767f).coerceIn(0f, 1f)
-                            _state.value = _state.value.copy(ambientAmplitude = normAmp)
-
-                            // Detect sudden vocal burst / shouting spike
-                            if (normAmp > 0.30f && spikeDetectedTimeMs == 0L) {
-                                spikeDetectedTimeMs = System.currentTimeMillis()
-                            }
-                        } catch (_: Exception) {}
-
-                        // If a loud vocal spike was detected and we captured at least 600ms of audio,
-                        // trigger early (500ms after spike) to cut off shouting fast!
-                        if (spikeDetectedTimeMs > 0L && (System.currentTimeMillis() - spikeDetectedTimeMs) >= 500L && elapsed >= 600L) {
-                            Log.d(TAG, "Early trigger activated on vocal burst spike (elapsed: ${elapsed}ms)")
-                            break
-                        }
-
-                        // Cap standard chunk duration at 1200ms (down from 2500ms)
-                        if (elapsed >= 1200L) {
-                            break
-                        }
-
-                        delay(50)
+                    // 3) Text-only match via Gemini Flash Lite (falls back to on-device heuristics).
+                    val result = withContext(Dispatchers.IO) {
+                        GeminiAudioClassifier.classifySituationText(
+                            situationText = situation,
+                            availablePads = pads.map { it.label },
+                            feedbackRules = getFeedbackRules()
+                        )
                     }
 
-                    try {
-                        recorder.stop()
-                    } catch (_: Exception) {}
-                    recorder.release()
-                    mediaRecorder = null
+                    _state.value = _state.value.copy(isAnalyzing = false)
 
-                    val normMaxAmp = (maxAmplitude / 32767f).coerceIn(0f, 1f)
+                    val matchedLabel = result.matchedLabel
+                    if (matchedLabel != null && result.confidence >= _state.value.sensitivity) {
+                        val now = System.currentTimeMillis()
+                        val cooldownMs = _state.value.cooldownSeconds * 1000L
+                        val shouldTrigger = _state.value.autoPlayEnabled && (now - lastTriggerTimeMs) >= cooldownMs
 
-                    // Run local TFLite acoustic classifier
-                    val acousticResult = TFLiteAcousticClassifier.analyzeAudioChunk(tempChunk, normMaxAmp, pads)
-
-                    // If acoustic level triggers or noise is significant, run contextual Gemini classifier
-                    if (acousticResult.category != AcousticCategory.QUIET_AMBIENT && tempChunk.exists() && tempChunk.length() > 500) {
-                        _state.value = _state.value.copy(
-                            isAnalyzing = true,
-                            statusMessage = "Analyzing voice input (${acousticResult.category.name})..."
-                        )
-
-                        val availableLabels = pads.map { it.label }
-                        val result = GeminiAudioClassifier.classifyAudio(
-                            audioFile = tempChunk,
-                            availablePads = availableLabels,
-                            feedbackRules = getFeedbackRules(),
-                            acousticHint = acousticResult.summary
-                        )
-
-                        _state.value = _state.value.copy(isAnalyzing = false)
-
-                        if (result.matchedLabel != null && result.confidence >= _state.value.sensitivity) {
-                            val now = System.currentTimeMillis()
-                            val cooldownMs = _state.value.cooldownSeconds * 1000L
-
-                            val shouldTrigger = (now - lastTriggerTimeMs) >= cooldownMs
-
-                            val newLog = AutoParentLog(
-                                detectedSituation = result.detectedSituation,
-                                matchedPadLabel = result.matchedLabel,
+                        addLog(
+                            AutoParentLog(
+                                detectedSituation = transcript,
+                                matchedPadLabel = matchedLabel,
                                 confidence = result.confidence,
                                 triggered = shouldTrigger
                             )
+                        )
 
-                            addLog(newLog)
+                        if (shouldTrigger) {
+                            lastTriggerTimeMs = now
+                            _state.value = _state.value.copy(
+                                lastTriggeredLabel = matchedLabel,
+                                statusMessage = "Matched '$matchedLabel' (${(result.confidence * 100).toInt()}%) -> Playing Clip!"
+                            )
 
-                            if (shouldTrigger) {
-                                lastTriggerTimeMs = now
-                                _state.value = _state.value.copy(
-                                    lastTriggeredLabel = result.matchedLabel,
-                                    statusMessage = "Matched '${result.matchedLabel}' (${(result.confidence * 100).toInt()}%) -> Playing Clip!"
-                                )
-
-                                val targetPad = pads.firstOrNull { it.label.trim().equals(result.matchedLabel?.trim(), ignoreCase = true) }
-                                    ?: pads.firstOrNull { pad ->
-                                        val m = result.matchedLabel?.trim() ?: ""
-                                        m.isNotBlank() && (pad.label.contains(m, ignoreCase = true) || m.contains(pad.label, ignoreCase = true))
-                                    }
-                                if (targetPad != null) {
-                                    val audioFile = fileResolver(targetPad)
-                                    if (audioFile != null && audioFile.exists()) {
-                                        scope.launch(Dispatchers.Main) {
-                                            audioPlayer.playPad(targetPad.id, audioFile)
-                                        }
-                                    }
+                            val targetPad = pads.firstOrNull {
+                                it.label.trim().equals(matchedLabel.trim(), ignoreCase = true)
+                            } ?: pads.firstOrNull { pad ->
+                                val m = matchedLabel.trim()
+                                m.isNotBlank() && (pad.label.contains(m, ignoreCase = true) || m.contains(pad.label, ignoreCase = true))
+                            }
+                            if (targetPad != null) {
+                                val audioFile = fileResolver(targetPad)
+                                if (audioFile != null && audioFile.exists()) {
+                                    audioPlayer.playPad(targetPad.id, audioFile)
                                 }
-                            } else {
-                                _state.value = _state.value.copy(
-                                    statusMessage = "Cooldown active (Skipped duplicate clip)"
-                                )
                             }
                         } else {
                             _state.value = _state.value.copy(
-                                statusMessage = "Listening for vocal inputs..."
+                                statusMessage = if (_state.value.autoPlayEnabled)
+                                    "Cooldown active (Skipped duplicate clip)"
+                                else
+                                    "Match found (auto-play off)"
                             )
                         }
                     } else {
-                        _state.value = _state.value.copy(
-                            statusMessage = "Listening for vocal inputs...",
-                            ambientAmplitude = 0f
-                        )
+                        _state.value = _state.value.copy(statusMessage = "Listening for vocal inputs...")
                     }
 
-                    if (tempChunk.exists()) {
-                        tempChunk.delete()
-                    }
-
-                    delay(150) // Seamless continuous monitoring cycle
-
+                    delay(120) // brief pause before the next listen cycle
                 } catch (e: Exception) {
                     Log.e(TAG, "Error in listening loop", e)
-                    stopListeningInternal()
                     _state.value = _state.value.copy(
                         isListening = false,
                         isAnalyzing = false,
-                        statusMessage = "Listening paused (Mic busy or released)"
+                        statusMessage = "Listening paused (Mic busy or unavailable)"
                     )
                     break
                 }
@@ -268,23 +230,25 @@ class AutoParentEngine(
 
             _state.value = _state.value.copy(isAnalyzing = false)
 
-            if (result.matchedLabel != null) {
-                val newLog = AutoParentLog(
-                    detectedSituation = result.detectedSituation,
-                    matchedPadLabel = result.matchedLabel,
-                    confidence = result.confidence,
-                    triggered = true
+            val matchedLabel = result.matchedLabel
+            if (matchedLabel != null) {
+                addLog(
+                    AutoParentLog(
+                        detectedSituation = result.detectedSituation,
+                        matchedPadLabel = matchedLabel,
+                        confidence = result.confidence,
+                        triggered = true
+                    )
                 )
-                addLog(newLog)
 
                 _state.value = _state.value.copy(
-                    lastTriggeredLabel = result.matchedLabel,
-                    statusMessage = "AI Matched: '${result.matchedLabel}' -> Auto-Playing Clip!"
+                    lastTriggeredLabel = matchedLabel,
+                    statusMessage = "AI Matched: '$matchedLabel' -> Auto-Playing Clip!"
                 )
 
-                val targetPad = pads.firstOrNull { it.label.trim().equals(result.matchedLabel?.trim(), ignoreCase = true) }
+                val targetPad = pads.firstOrNull { it.label.trim().equals(matchedLabel.trim(), ignoreCase = true) }
                     ?: pads.firstOrNull { pad ->
-                        val m = result.matchedLabel?.trim() ?: ""
+                        val m = matchedLabel.trim()
                         m.isNotBlank() && (pad.label.contains(m, ignoreCase = true) || m.contains(pad.label, ignoreCase = true))
                     }
                 if (targetPad != null) {
@@ -333,24 +297,10 @@ class AutoParentEngine(
     }
 
     private fun stopListeningInternal() {
+        // Cancelling the job triggers the transcriber's cancellation handler, which
+        // cancels and releases the underlying SpeechRecognizer.
         listeningJob?.cancel()
         listeningJob = null
-
-        try {
-            mediaRecorder?.let { recorder ->
-                try { recorder.stop() } catch (_: Exception) {}
-                recorder.release()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error releasing media recorder", e)
-        } finally {
-            mediaRecorder = null
-        }
-
-        listeningTempFile?.let {
-            if (it.exists()) it.delete()
-        }
-        listeningTempFile = null
     }
 
     fun rateLog(logId: String, isPositive: Boolean) {

@@ -92,6 +92,47 @@ object TFLiteAcousticClassifier {
     }
 
     /**
+     * Lightweight, fully on-device tone classification from a normalized peak-loudness
+     * value only (0..1). Used by the live listener, which transcribes speech on-device
+     * and therefore has no audio file to inspect — only microphone loudness. No audio
+     * data is involved or transmitted.
+     */
+    fun analyzeAmplitude(peakAmplitudeNorm: Float): AcousticAnalysisResult {
+        val energyBurst = (peakAmplitudeNorm * 1.8f).coerceIn(0f, 1f)
+        val estimatedPitchiness = (peakAmplitudeNorm * 1.5f).coerceIn(0f, 1f)
+
+        val category = when {
+            peakAmplitudeNorm > 0.45f || energyBurst > 0.70f -> AcousticCategory.YELLING_SCREAMING
+            peakAmplitudeNorm in 0.20f..0.45f -> AcousticCategory.NAGGING_WHINING
+            peakAmplitudeNorm > 0.12f -> AcousticCategory.TALKING_REQUEST
+            else -> AcousticCategory.QUIET_AMBIENT
+        }
+
+        val confidence = when (category) {
+            AcousticCategory.YELLING_SCREAMING -> 0.88f
+            AcousticCategory.NAGGING_WHINING -> 0.82f
+            AcousticCategory.TALKING_REQUEST -> 0.75f
+            AcousticCategory.QUIET_AMBIENT -> 0.90f
+        }
+
+        val summary = when (category) {
+            AcousticCategory.YELLING_SCREAMING -> "High-energy acoustic trigger: Yelling / Screaming detected"
+            AcousticCategory.NAGGING_WHINING -> "Acoustic trigger: High-pitch nagging / whining vocal signature"
+            AcousticCategory.TALKING_REQUEST -> "Acoustic trigger: Spoken child request or conversational voice"
+            AcousticCategory.QUIET_AMBIENT -> "Low-level ambient room audio"
+        }
+
+        return AcousticAnalysisResult(
+            category = category,
+            peakAmplitudeNorm = peakAmplitudeNorm,
+            energyBurstRatio = energyBurst,
+            pitchPitchiness = estimatedPitchiness,
+            confidence = confidence,
+            summary = summary
+        )
+    }
+
+    /**
      * Formats user's uploaded clips and past training/feedback metadata to enhance Gemini prompt context.
      */
     fun buildUserClipTrainingContext(pads: List<PadEntity>): String {
