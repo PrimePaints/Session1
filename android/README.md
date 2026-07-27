@@ -55,7 +55,7 @@ Debug builds need no signing setup (Android's default debug keystore is used).
 ## Notes
 
 - `minSdk 24` (Android 7) · `targetSdk 36`.
-- Application ID: `za.co.primepaints.soundboard` — this is **permanent** once published.
+- Application ID: `app.repeatless` (brand: **Repeatless** / repeatless.app) — this is **permanent** once published.
 - The Gemini API key is embedded in the app via `BuildConfig`. Before publishing,
   restrict the key (Google Cloud Console → API key → application restrictions) or
   route calls through a small backend proxy; keys shipped in an APK can be extracted.

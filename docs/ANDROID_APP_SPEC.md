@@ -154,7 +154,7 @@ Large tappable pads, bottom-sheet dialogs, min 48dp touch targets.
 ## 9. Google Play readiness checklist
 
 **Done / in place**
-- Native release build config; branded application ID `za.co.primepaints.soundboard`.
+- Native release build config; branded application ID `app.repeatless` (brand: Repeatless — see `BUSINESS_PLAN.md`).
 - Debug builds work with the default debug keystore (no manual setup).
 - Adaptive launcher icons; app label "Soundboard".
 - Firebase / google-services / Smart Home / cloud-audio paths removed.

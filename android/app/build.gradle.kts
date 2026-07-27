@@ -12,7 +12,8 @@ android {
 
   defaultConfig {
     // Permanent, unique identifier on Google Play. Cannot be changed after first publish.
-    applicationId = "za.co.primepaints.soundboard"
+    // Reverse-DNS of the brand domain repeatless.app.
+    applicationId = "app.repeatless"
     minSdk = 24
     targetSdk = 36
     versionCode = 1
