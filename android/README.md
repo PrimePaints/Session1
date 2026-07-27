@@ -52,6 +52,22 @@ Debug builds need no signing setup (Android's default debug keystore is used).
    The signed `.aab` under `app/build/outputs/bundle/release/` is what you upload to
    the Play Console.
 
+## Pro unlock (Play Billing)
+
+The one-time PRO purchase is implemented in `billing/BillingManager.kt` against
+in-app product ID **`pro_unlock`**. Before it can work you must create that
+product in Play Console (Monetise → Products → In-app products), set prices, and
+distribute the build through Play (the internal testing track is enough; add
+your Google account as a license tester to buy without being charged). On local
+debug builds, use the "(Debug) Simulate PRO" switch in the upgrade dialog.
+
+## Brand
+
+Colours, typography (bundled Baloo 2 + Nunito — see `FONTS_LICENSE.md`), icon,
+and voice are defined in [`../docs/BRAND.md`](../docs/BRAND.md). Legacy raster
+launcher mipmaps (API 24–25) should be regenerated from the adaptive vector via
+Android Studio's Image Asset tool.
+
 ## Notes
 
 - `minSdk 24` (Android 7) · `targetSdk 36`.

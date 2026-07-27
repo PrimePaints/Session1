@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#241E2B"
+    android:background="@color/panel_dark"
     android:orientation="vertical"
     android:padding="8dp">
 
@@ -10,10 +10,11 @@
         android:id="@+id/widget_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Soundboard"
-        android:textColor="#F4ECE2"
+        android:text="Repeatless"
+        android:textColor="@color/text_cream"
         android:textSize="14sp"
         android:textStyle="bold"
+        android:fontFamily="@font/baloo2_bold"
         android:paddingBottom="4dp" />
 
     <GridView

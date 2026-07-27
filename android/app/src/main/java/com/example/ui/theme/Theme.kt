@@ -18,31 +18,39 @@ private val ConsoleDarkColorScheme = darkColorScheme(
     onPrimary = Color.White,
     secondary = AmberAccent,
     onSecondary = GroundDark,
+    tertiary = BentoBlue,
+    onTertiary = GroundDark,
     background = GroundDark,
     onBackground = TextCream,
     surface = PanelDark,
     onSurface = TextCream,
     surfaceVariant = Panel2Dark,
     onSurfaceVariant = TextMutedDark,
-    outline = LineDark
+    outline = LineDark,
+    error = RecRed,
+    onError = Color.White
 )
 
 private val ConsoleLightColorScheme = lightColorScheme(
-    primary = RecRed,
+    primary = RecRedDeep,
     onPrimary = Color.White,
     secondary = AmberAccent,
-    onSecondary = GroundDark,
+    onSecondary = TextDark,
+    tertiary = BentoBlue,
+    onTertiary = TextDark,
     background = GroundLight,
     onBackground = TextDark,
     surface = PanelLight,
     onSurface = TextDark,
     surfaceVariant = Panel2Light,
     onSurfaceVariant = TextMutedLight,
-    outline = LineLight
+    outline = LineLight,
+    error = RecRedDeep,
+    onError = Color.White
 )
 
 @Composable
-fun SoundboardTheme(
+fun RepeatlessTheme(
     themeMode: ThemeMode = ThemeMode.CONSOLE_DARK,
     content: @Composable () -> Unit
 ) {
@@ -60,4 +68,3 @@ fun SoundboardTheme(
         content = content
     )
 }
-

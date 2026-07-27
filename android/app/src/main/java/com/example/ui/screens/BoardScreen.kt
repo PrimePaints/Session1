@@ -169,7 +169,7 @@ fun BoardScreen(
                         Spacer(modifier = Modifier.width(8.dp))
 
                         Text(
-                            text = board?.name ?: "Soundboard",
+                            text = board?.name ?: "Repeatless",
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
                             color = MaterialTheme.colorScheme.onSurface

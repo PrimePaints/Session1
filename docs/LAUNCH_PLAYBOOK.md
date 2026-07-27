@@ -28,10 +28,14 @@ Check items off in order; ~everything before "Launch week" is doable solo.
 - [x] Audio-privacy architecture (on-device STT, text-only Gemini) — done.
 - [x] Firebase/Smart Home stripped; Free/Pro model — done.
 - [x] Branded application ID — `app.repeatless`.
-- [ ] **Integrate Google Play Billing** (one-time product `pro_unlock`,
-      "Restore purchases", replace the local tier toggle). *Blocking for revenue.*
-- [ ] Rename remaining in-app copy ("Soundboard PRO" → "Repeatless PRO", About
-      dialog, membership dialog).
+- [x] **Google Play Billing integrated** (`BillingManager`, one-time product
+      `pro_unlock`, dynamic localized pricing, Restore purchases, debug-only
+      entitlement toggle). Remaining manual step: create the in-app product with
+      ID `pro_unlock` in Play Console (Monetise → In-app products) and set
+      prices; purchases only work on Play-distributed builds (internal testing
+      track + license testers).
+- [x] In-app copy, theme, fonts, and launcher icon rebranded to Repeatless
+      (see docs/BRAND.md).
 - [ ] Auto-Parent hardening: per-device daily match cap (e.g. 200); prominent
       mic-use disclosure dialog on first enable (Play policy).
 - [ ] **Restrict the Gemini API key** (Cloud Console → key restrictions: Android

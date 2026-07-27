@@ -1,6 +1,7 @@
 package com.example
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,22 +16,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.audio.AudioPlayer
+import com.example.billing.BillingManager
 import com.example.audio.AudioRecorder
 import com.example.audio.AutoParentEngine
 import com.example.data.preferences.UserPreferences
 import com.example.data.preferences.UserPreferencesRepository
-import com.example.data.preferences.UserTier
 import com.example.data.repository.SoundboardRepository
 import com.example.ui.screens.AutoParentSettingsScreen
 import com.example.ui.screens.BoardManagementDialog
 import com.example.ui.screens.BoardScreen
 import com.example.ui.screens.ProUpsellDialog
 import com.example.ui.screens.SettingsScreen
-import com.example.ui.theme.SoundboardTheme
+import com.example.ui.theme.RepeatlessTheme
 import com.example.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
@@ -41,6 +43,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var audioPlayer: AudioPlayer
     private lateinit var audioRecorder: AudioRecorder
     private lateinit var autoParentEngine: AutoParentEngine
+    private lateinit var billingManager: BillingManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +54,10 @@ class MainActivity : ComponentActivity() {
         audioPlayer = AudioPlayer(applicationContext)
         audioRecorder = AudioRecorder(applicationContext)
         autoParentEngine = AutoParentEngine(applicationContext, audioPlayer)
+        billingManager = BillingManager(applicationContext) { owned ->
+            lifecycleScope.launch { preferencesRepo.setProEntitlement(owned) }
+        }
+        billingManager.connect()
 
         setContent {
             val scope = rememberCoroutineScope()
@@ -80,9 +87,18 @@ class MainActivity : ComponentActivity() {
             val pads by (padsFlow?.collectAsState(initial = emptyList()) ?: remember { mutableStateOf(emptyList()) })
 
             val playbackState by audioPlayer.playbackState.collectAsState()
+            val billingState by billingManager.state.collectAsState()
 
             var showBoardManagement by remember { mutableStateOf(false) }
             var showProUpsell by remember { mutableStateOf(false) }
+
+            // Surface one-shot billing messages (purchase result, restore, pending).
+            LaunchedEffect(billingState.message) {
+                billingState.message?.let { msg ->
+                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                    billingManager.consumeMessage()
+                }
+            }
 
             DisposableEffect(Unit) {
                 onDispose {
@@ -91,7 +107,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            SoundboardTheme(themeMode = userPrefs.themeMode) {
+            RepeatlessTheme(themeMode = userPrefs.themeMode) {
                 val navController = rememberNavController()
 
                 NavHost(
@@ -141,9 +157,7 @@ class MainActivity : ComponentActivity() {
                             onSetThemeMode = { themeMode ->
                                 scope.launch { preferencesRepo.setThemeMode(themeMode) }
                             },
-                            onToggleProEntitlement = { isPro ->
-                                scope.launch { preferencesRepo.setProEntitlement(isPro) }
-                            },
+                            onShowProUpsell = { showProUpsell = true },
                             onNavigateToAutoParentSettings = {
                                 navController.navigate("auto_parent_settings")
                             }
@@ -197,22 +211,25 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // Tier Selection Dialog
+                // PRO purchase dialog (Google Play Billing)
                 if (showProUpsell) {
                     ProUpsellDialog(
                         currentTier = userPrefs.tier,
+                        proPrice = billingState.proPrice,
                         onDismiss = { showProUpsell = false },
-                        onSelectTier = { selectedTier ->
-                            scope.launch {
-                                when (selectedTier) {
-                                    UserTier.FREE -> preferencesRepo.setProEntitlement(false)
-                                    UserTier.PRO -> preferencesRepo.setProEntitlement(true)
-                                }
-                            }
-                        }
+                        onBuyPro = { billingManager.launchPurchase(this@MainActivity) },
+                        onRestore = { billingManager.refreshPurchases(notifyUser = true) },
+                        onDebugTogglePro = if (BuildConfig.DEBUG) {
+                            { pro -> scope.launch { preferencesRepo.setProEntitlement(pro) } }
+                        } else null
                     )
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        billingManager.destroy()
+        super.onDestroy()
     }
 }

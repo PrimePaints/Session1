@@ -1,4 +1,6 @@
-<title>Soundboard</title>
+<title>Repeatless</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --ground:#1a1620;
@@ -15,7 +17,8 @@
     --tap:56px;
     --safe-top:env(safe-area-inset-top,0px);
     --safe-bot:env(safe-area-inset-bottom,0px);
-    --font:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --font:"Nunito",ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --font-display:"Baloo 2",var(--font);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;height:100%;}
@@ -50,6 +53,7 @@
   }
   .title{
     margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em;
+    font-family:var(--font-display);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .icon-btn{
@@ -259,7 +263,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="power" aria-hidden="true"></span>
-      <h1 class="title" id="title">Soundboard</h1>
+      <h1 class="title" id="title">Repeatless</h1>
     </div>
     <button class="icon-btn" id="renameTitle" aria-label="Rename board">✎</button>
     <button class="icon-btn" id="menuBtn" aria-label="Backup and settings">⋯</button>
@@ -309,7 +313,7 @@
   var titleEl=document.getElementById("title");
 
   /* ---------------- Title ---------------- */
-  function loadTitle(){try{return localStorage.getItem("sb_title")||"Soundboard";}catch(e){return "Soundboard";}}
+  function loadTitle(){try{return localStorage.getItem("sb_title")||"Repeatless";}catch(e){return "Repeatless";}}
   function saveTitle(t){try{localStorage.setItem("sb_title",t);}catch(e){}}
   titleEl.textContent=loadTitle();
   document.title=titleEl.textContent;

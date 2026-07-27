@@ -24,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,13 +43,24 @@ import com.example.data.preferences.UserTier
 import com.example.ui.theme.AmberAccent
 import com.example.ui.theme.RecRed
 
+/**
+ * Free vs PRO dialog. Purchases go through Google Play Billing:
+ * [onBuyPro] launches the billing flow, [onRestore] re-queries owned purchases.
+ * [proPrice] is Play's localised price (null until the store responds).
+ * [onDebugTogglePro] is non-null only on debug builds — local entitlement toggle
+ * for development, since billing needs a Play-distributed build.
+ */
 @Composable
 fun ProUpsellDialog(
     currentTier: UserTier = UserTier.FREE,
+    proPrice: String? = null,
     onDismiss: () -> Unit,
-    onSelectTier: (UserTier) -> Unit
+    onBuyPro: () -> Unit,
+    onRestore: () -> Unit,
+    onDebugTogglePro: ((Boolean) -> Unit)? = null
 ) {
     var selectedTierTab by remember { mutableStateOf(if (currentTier == UserTier.FREE) UserTier.PRO else currentTier) }
+    val isPro = currentTier == UserTier.PRO
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -61,19 +73,20 @@ fun ProUpsellDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Star,
-                        contentDescription = "Tier Upgrade",
+                        contentDescription = "Repeatless PRO",
                         tint = AmberAccent,
                         modifier = Modifier.size(26.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Soundboard Membership", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("Repeatless PRO", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
             }
         },
         text = {
             Column {
                 Text(
-                    text = "Unlock the full soundboard with a one-time purchase:",
+                    text = if (isPro) "PRO is active on this device. Thank you!"
+                    else "Unlock everything with a single one-time purchase — no subscription.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp
                 )
@@ -98,7 +111,7 @@ fun ProUpsellDialog(
 
                     TierTabButton(
                         title = "PRO",
-                        badge = "One-time",
+                        badge = proPrice ?: "One-time",
                         isSelected = selectedTierTab == UserTier.PRO,
                         onClick = { selectedTierTab = UserTier.PRO },
                         modifier = Modifier.weight(1f)
@@ -107,12 +120,11 @@ fun ProUpsellDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Feature details card based on tab
                 when (selectedTierTab) {
                     UserTier.FREE -> {
                         TierDetailCard(
                             tierName = "Standard (Free)",
-                            description = "Essential local audio soundboard features for everyday quick taps.",
+                            description = "Essential soundboard features for everyday quick taps.",
                             features = listOf(
                                 "Up to 2 Soundboards" to true,
                                 "Custom Audio Recording" to true,
@@ -126,8 +138,8 @@ fun ProUpsellDialog(
 
                     UserTier.PRO -> {
                         TierDetailCard(
-                            tierName = "Soundboard PRO",
-                            description = "Everything unlocked with a single one-time purchase — no subscription.",
+                            tierName = "Repeatless PRO",
+                            description = "Everything unlocked, forever. Pay once, nag effortlessly.",
                             features = listOf(
                                 "Unlimited Boards & Sound Clips" to true,
                                 "⚡ Auto-Parent AI Listening Mode" to true,
@@ -140,26 +152,41 @@ fun ProUpsellDialog(
                         )
                     }
                 }
+
+                if (onDebugTogglePro != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "(Debug) Simulate PRO entitlement",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Switch(checked = isPro, onCheckedChange = { onDebugTogglePro(it) })
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    onSelectTier(selectedTierTab)
+                    if (!isPro && selectedTierTab == UserTier.PRO) {
+                        onBuyPro()
+                    }
                     onDismiss()
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = when (selectedTierTab) {
-                        UserTier.FREE -> MaterialTheme.colorScheme.surfaceVariant
-                        UserTier.PRO -> RecRed
-                    }
-                )
+                enabled = !isPro && selectedTierTab == UserTier.PRO,
+                colors = ButtonDefaults.buttonColors(containerColor = RecRed)
             ) {
                 Text(
                     text = when {
-                        currentTier == selectedTierTab -> "Current Plan"
-                        selectedTierTab == UserTier.FREE -> "Switch to Free"
-                        else -> "Unlock PRO"
+                        isPro -> "PRO Active ✓"
+                        selectedTierTab == UserTier.PRO ->
+                            if (proPrice != null) "Unlock PRO · $proPrice" else "Unlock PRO"
+                        else -> "Free plan"
                     },
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -167,8 +194,13 @@ fun ProUpsellDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row {
+                TextButton(onClick = onRestore) {
+                    Text("Restore purchases", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Close", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
     )

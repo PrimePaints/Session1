@@ -88,7 +88,7 @@ fun SettingsScreen(
     onBackClick: () -> Unit,
     onSetHaptics: (Boolean) -> Unit,
     onSetThemeMode: (ThemeMode) -> Unit,
-    onToggleProEntitlement: (Boolean) -> Unit,
+    onShowProUpsell: () -> Unit,
     onNavigateToAutoParentSettings: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -98,7 +98,6 @@ fun SettingsScreen(
     var showPrivacyPolicy by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showRestoreConfirmDialog by remember { mutableStateOf(false) }
-    var showProUpsellDialog by remember { mutableStateOf(false) }
     var restoreUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
     val allPads by repository.allPads.collectAsState(initial = emptyList())
@@ -206,7 +205,7 @@ fun SettingsScreen(
                         Text(
                             text = when (userPreferences.tier) {
                                 UserTier.FREE -> "Standard Tier (Free)"
-                                UserTier.PRO -> "Soundboard PRO Active"
+                                UserTier.PRO -> "Repeatless PRO Active"
                             },
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
@@ -223,7 +222,7 @@ fun SettingsScreen(
                     }
 
                     Button(
-                        onClick = { showProUpsellDialog = true },
+                        onClick = onShowProUpsell,
                         colors = ButtonDefaults.buttonColors(containerColor = AmberAccent)
                     ) {
                         Text("Manage Plan", fontWeight = FontWeight.Bold, color = Color.Black, fontSize = 12.sp)
@@ -573,7 +572,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("About Soundboard v1.0", fontWeight = FontWeight.SemiBold)
+                        Text("About Repeatless v1.0", fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -651,7 +650,7 @@ fun SettingsScreen(
             title = { Text("Privacy Policy") },
             text = {
                 Text(
-                    "Soundboard is designed with privacy as a foundational principle.\n\n" +
+                    "Repeatless is designed with privacy as a foundational principle.\n\n" +
                     "• Your recordings stay on your device: all audio clips, labels, and soundboards are stored only on this device and are never uploaded.\n" +
                     "• Microphone: used to record your clips, and — only while you turn on Auto-Parent AI listening — to transcribe nearby speech to text on your device.\n" +
                     "• AI matching sends text only: when Auto-Parent AI is enabled, the on-device transcript (never the audio itself) is sent to Google's Gemini API to choose which of your clips to play.\n" +
@@ -670,10 +669,10 @@ fun SettingsScreen(
     if (showAboutDialog) {
         AlertDialog(
             onDismissRequest = { showAboutDialog = false },
-            title = { Text("About Soundboard") },
+            title = { Text("About Repeatless") },
             text = {
                 Text(
-                    "Soundboard v1.0\n" +
+                    "Repeatless v1.0\n" +
                     "Say it once. Tap it forever.\n\n" +
                     "Designed for parents, teachers, coaches, and daily repeating voice clips.\n\n" +
                     "Built with Kotlin, Jetpack Compose, Material 3, and Room Database."
@@ -833,22 +832,6 @@ fun SettingsScreen(
         )
     }
 
-    // Pro Tier Selection Dialog
-    if (showProUpsellDialog) {
-        ProUpsellDialog(
-            currentTier = userPreferences.tier,
-            onDismiss = { showProUpsellDialog = false },
-            onSelectTier = { selectedTier ->
-                when (selectedTier) {
-                    UserTier.FREE -> onToggleProEntitlement(false)
-                    UserTier.PRO -> onToggleProEntitlement(true)
-                }
-                scope.launch {
-                    snackbarHostState.showSnackbar("Switched to ${selectedTier.name} membership plan")
-                }
-            }
-        )
-    }
 }
 
 @Composable
