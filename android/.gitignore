@@ -2,17 +2,32 @@
 .gradle
 .kotlin
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+local.properties
+# All IDE state — nothing under .idea/ needs sharing on a single-developer project,
+# and it leaks local SDK/JDK paths and run configs into a public repo.
+/.idea/
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
-local.properties
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+# Real Gemini API key (.env.example is the tracked placeholder template)
 .env
-debug.keystore
+# Signing keys. app/build.gradle.kts defaults KEYSTORE_PATH to android/upload-key.jks
+# and the README suggests that path, so these globs are what stop a `git add -A`
+# from publishing the Play upload key on a PUBLIC repo.
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+google-services.json
+
+# ── Build artefacts ───────────────────────────────────────────────────────────
+*.apk
+*.aab
+*.aar
+/app/release/
+**/build/outputs/roborazzi/
+/app/src/test/screenshots/*_compare.png

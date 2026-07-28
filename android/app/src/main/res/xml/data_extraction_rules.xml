@@ -1,19 +1,27 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Data extraction rules for API 31+ (cloud backup and device-to-device transfer).
+
+   android:allowBackup is "false" in AndroidManifest.xml, so no cloud backup runs.
+   These exclusions are defence-in-depth: the user's voice recordings and clip
+   database must never be uploaded to Google Drive or transferred off-device by the
+   platform, because "your recordings never leave your phone" is the product's core
+   promise. Users move their data deliberately via Settings → Export backup.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="file" path="audio_clips" />
+        <exclude domain="database" path="soundboard.db" />
+        <exclude domain="database" path="soundboard.db-shm" />
+        <exclude domain="database" path="soundboard.db-wal" />
+        <!-- DataStore holds the PRO entitlement; re-derive it from Play, never restore it -->
+        <exclude domain="file" path="datastore" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="file" path="audio_clips" />
+        <exclude domain="database" path="soundboard.db" />
+        <exclude domain="database" path="soundboard.db-shm" />
+        <exclude domain="database" path="soundboard.db-wal" />
+        <exclude domain="file" path="datastore" />
     </device-transfer>
-    -->
 </data-extraction-rules>

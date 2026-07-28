@@ -1,6 +1,6 @@
-# Soundboard (Android)
+# Repeatless (Android)
 
-A personal soundboard: record short voice clips once, organise them into boards,
+Repeatless is a personal soundboard for parents: record short voice clips once, organise them into boards,
 and play them with a tap — plus an optional **Auto-Parent AI** mode that listens,
 transcribes speech **on-device**, and auto-plays the clip that best fits.
 
@@ -23,7 +23,9 @@ full architecture and Play Store readiness notes.
 **Prerequisite:** [Android Studio](https://developer.android.com/studio) (latest stable).
 
 1. Open Android Studio → **Open** → select this `android/` folder.
-2. Let Gradle sync. Android Studio will generate the Gradle wrapper if needed.
+2. Let Gradle sync. No Gradle wrapper is committed yet, so let Android Studio generate
+   one on first import (or run `gradle wrapper` if you have Gradle on PATH, then commit
+   it so the build is reproducible).
 3. (Optional, for AI) Create a file named **`.env`** in this folder with:
    ```
    GEMINI_API_KEY=your_real_key_here
@@ -49,8 +51,11 @@ Debug builds need no signing setup (Android's default debug keystore is used).
    ```
    ./gradlew bundleRelease
    ```
-   The signed `.aab` under `app/build/outputs/bundle/release/` is what you upload to
-   the Play Console.
+   The `.aab` lands in `app/build/outputs/bundle/release/`. It is only **signed** if the
+   env vars above (or `android/upload-key.jks`) are present — without them the build
+   still succeeds but emits an UNSIGNED bundle that Play will reject, so the build logs a
+   warning. Confirm with `apksigner verify` (or `jarsigner -verify`) before uploading.
+   Keystores and `.env` are gitignored; never commit them to this public repo.
 
 ## Pro unlock (Play Billing)
 

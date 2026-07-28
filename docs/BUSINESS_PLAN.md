@@ -4,8 +4,16 @@
 the same thing over and over.
 **Tagline:** *Say it once. Tap it forever.*
 **Marketing hook:** *Stop sounding like a broken record.*
-**Founder:** Dylan (Prime Paints, South Africa) · **Date:** 27 July 2026
-**Status:** Android app built (Kotlin/Compose); web prototype live; pre-revenue.
+**Founder:** Dylan (Prime Paints, South Africa) · **Last reviewed:** 28 July 2026
+
+Doc set: current state & forward plan → [ROADMAP.md](ROADMAP.md) · technical detail →
+[ANDROID_APP_SPEC.md](ANDROID_APP_SPEC.md) · launch mechanics →
+[LAUNCH_PLAYBOOK.md](LAUNCH_PLAYBOOK.md) · brand → [BRAND.md](BRAND.md).
+
+**Status:** Android app built (Kotlin/Compose/Room/DataStore/widget); Google Play Billing
+integrated (one-time `pro_unlock`); brand system applied; privacy policy written and
+hosted. **Not yet:** domain registered, Play Console account, `pro_unlock` product
+created, first compile pass, store graphics. Pre-revenue.
 
 ---
 
@@ -28,7 +36,7 @@ whines and Mom's voice instantly booms back), and keep costs near zero
 (< US$100 to launch; AI cost ≈ US$0.0001 per match).
 
 Year-1 realistic outcome: a profitable micro-business with genuine viral upside;
-every scenario above ~25 installs is cash-flow positive because fixed costs are
+every scenario above ~25 Pro sales is cash-flow positive because fixed costs are
 trivial.
 
 ---
@@ -54,8 +62,11 @@ The instructions are predictable, the phrasing is identical, and the emotional c
 ## 3. Product
 
 **Shipped (Android, native Kotlin + Jetpack Compose):**
+- **Google Play Billing:** one-time `pro_unlock` purchase with Play-supplied localised
+  pricing, purchase acknowledgement and Restore purchases; entitlement cached to
+  DataStore so PRO survives offline.
 - Record/label/colour clips; multiple boards; drag-reorder; haptics; themes.
-- Home-screen widget for instant playback.
+- Home-screen widget (opens the chosen board).
 - Local backup/restore (also imports the original web prototype's backups).
 - **Auto-Parent AI (Pro):** on-device speech-to-text → text-only call to Gemini
   Flash Lite → plays the best-matching clip. Sensitivity, cooldown, feedback
@@ -113,7 +124,8 @@ automatically — without your recordings ever leaving your phone.*
 adult-facing (deliberately avoids kid-app aesthetics — important for Play policy,
 see §10), clean search results.
 
-- **Domain:** `repeatless.app` — checked **available (DNS NXDOMAIN) on 2026-07-27**.
+- **Domain:** `repeatless.app` — checked **available (DNS NXDOMAIN) on 2026-07-27**, still
+  unregistered as of 2026-07-28.
   Availability changes by the minute: **register immediately** (~US$12–15/yr at
   Cloudflare/Namecheap/Porkbun). Optionally add `repeatless.co.za` (~R60–100/yr).
   `repeatless.com` is registered to a third party (not a consumer app; a small
@@ -139,8 +151,8 @@ the project and validated by the audience: parents are subscription-fatigued, an
 
 | Tier | Price | Includes |
 |---|---|---|
-| Free | R0 / $0 | Full soundboard, 2 boards × 12 pads, 1 widget, backup/restore |
-| **Pro** | **US$4.99 one-time** (launch price; ~R89.99 in SA; raise to $6.99 once reviews > 200) | Unlimited boards/clips, **Auto-Parent AI**, trimming, trigger tags, all themes |
+| Free | R0 / $0 | 2 boards × 12 clips, 1 widget, backup/restore |
+| **Pro** | **US$4.99 one-time** (launch price; raise to $6.99 once reviews > 200) | Unlimited boards/clips, **Auto-Parent AI** |
 
 - Google's fee is **15%** on the first $1M/yr (enrol in the 15% service-fee tier)
   → net ≈ **$4.24** per Pro sale.
@@ -172,7 +184,8 @@ before scale — embedded keys can be extracted from APKs (see §10).
 
 **Phase 0 — Foundation (weeks 1–2)**
 Register domain + handles; hosted privacy policy (done — in this repo); landing
-page with mailing-list capture; Play listing assets; wire Play Billing.
+page with mailing-list capture; Play listing assets; create the `pro_unlock` in-app
+product in Play Console (client-side billing is already integrated).
 
 **Phase 1 — Closed testing that doubles as marketing (weeks 2–5)**
 Google Play requires new *personal* dev accounts to run a closed test with
@@ -211,7 +224,7 @@ conversion (~R15k/yr cost: Mac + Apple fee — gate on revenue).
 |---|---|
 | Google Play developer account | $25 (~R450) |
 | Domain repeatless.app | ~$14/yr |
-| Privacy policy hosting | $0 (GitHub Pages, done) |
+| Privacy policy hosting | $0 (GitHub Pages — live at primepaints.github.io/Repeatless-Android/privacy.html) |
 | Design assets (DIY + free tools) | $0–$50 |
 | **Total** | **< $100** |
 
@@ -239,7 +252,7 @@ installs driven ~90% by short-form video. Break-even is ~25 Pro sales.
 |---|---|---|
 | **Children's-data optics** (app transcribes kids' speech) | High (reputational/regulatory) | Audio never leaves device (architectural); transcripts ephemeral, no accounts; app is **for parents**, not children — do NOT enrol in Play "Designed for Families"; privacy policy states children's-data handling plainly; Data Safety form scrupulously accurate |
 | Embedded Gemini API key extracted & abused | Medium-High | Restrict key in Cloud Console; daily quota caps; Pro-gating limits exposure; move to thin proxy (Cloudflare Worker, free) before scale |
-| Play policy (background mic use) | Medium | Auto-Parent runs foreground-only with visible status; prominent disclosure before first use; re-verify against current Play policy pre-launch |
+| Play policy (background mic use) | Medium | Auto-Parent is tied to the Activity lifecycle (stopped in `onDispose`) with a visible listening status — but there is **no prominent mic-use disclosure dialog and no foreground service yet**; both are pre-launch blockers (see ROADMAP v1.0 hardening) |
 | Fast-follower copycats post-virality | Medium | Ship the roadmap fast; own the brand/UGC loop; reviews moat |
 | "Lazy-parenting app" press angle | Medium | Lean into humour; frame as *consistency tool* ("same words, calm voice, every time"); parent testimonials |
 | Gemini API price/model changes | Low-Med | Text-only calls are trivially portable (any LLM or on-device model later) |
@@ -260,7 +273,7 @@ installs driven ~90% by short-form video. Break-even is ~25 Pro sales.
 
 | Weeks | Milestone |
 |---|---|
-| 1–2 | Domain + handles registered; Play account; **Play Billing integrated**; internal QA build |
+| 1–2 | Domain + handles registered; Play account created; `pro_unlock` product created + priced; **first Android Studio compile pass**; internal QA build |
 | 2–4 | Closed testing (12+ testers) *(Path A)* or verification wait *(Path B)*; landing page + content backlog (10 videos) |
 | 5–6 | Production review; store listing final; press/creator kit out |
 | 6–8 | **Public launch**; daily content cadence; respond to every review |

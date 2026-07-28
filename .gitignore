@@ -1,0 +1,32 @@
+# ── Secrets — never commit ────────────────────────────────────────────────────
+# Gemini API key (the Secrets Gradle plugin reads android/.env)
+.env
+.env.*
+!.env.example
+# Play upload / release signing keys. Committing one of these to this PUBLIC repo
+# would hand over the ability to sign releases as us.
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+google-services.json
+
+# ── Local machine / IDE ───────────────────────────────────────────────────────
+local.properties
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# ── Build output ──────────────────────────────────────────────────────────────
+build/
+.gradle/
+.kotlin/
+captures/
+*.apk
+*.aab
+*.aar
+*.log
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+node_modules/

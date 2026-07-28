@@ -1,7 +1,11 @@
 # Repeatless — Launch Playbook
 
-Step-by-step from today's repo to a live Google Play listing. Companion to
-`BUSINESS_PLAN.md` (strategy) and `ANDROID_APP_SPEC.md` (technical readiness).
+Step-by-step from today's repo to a live Google Play listing.
+
+Doc set: current state & forward plan → [ROADMAP.md](ROADMAP.md) · strategy →
+[BUSINESS_PLAN.md](BUSINESS_PLAN.md) · technical detail →
+[ANDROID_APP_SPEC.md](ANDROID_APP_SPEC.md) · brand → [BRAND.md](BRAND.md).
+
 Check items off in order; ~everything before "Launch week" is doable solo.
 
 ---
@@ -35,7 +39,7 @@ Check items off in order; ~everything before "Launch week" is doable solo.
       prices; purchases only work on Play-distributed builds (internal testing
       track + license testers).
 - [x] In-app copy, theme, fonts, and launcher icon rebranded to Repeatless
-      (see docs/BRAND.md).
+      (see BRAND.md).
 - [ ] Auto-Parent hardening: per-device daily match cap (e.g. 200); prominent
       mic-use disclosure dialog on first enable (Play policy).
 - [ ] **Restrict the Gemini API key** (Cloud Console → key restrictions: Android
@@ -63,9 +67,9 @@ Check items off in order; ~everything before "Launch week" is doable solo.
       - **Audio: not collected, not shared.** Recordings remain on device.
       - Data encrypted in transit: yes (HTTPS). Deletable: uninstall / in-app
         delete; no server copies.
-- [ ] **Privacy policy URL**: `https://primepaints.github.io/Session1/privacy.html`
-      (page ships in this repo — enable GitHub Pages; later move to
-      `https://repeatless.app/privacy`).
+- [x] **Privacy policy URL**: `https://primepaints.github.io/Repeatless-Android/privacy.html`
+      (`privacy.html` ships in this repo and is already live on GitHub Pages; move to
+      `https://repeatless.app/privacy` once the domain is registered).
 - [ ] App access notes for reviewers: "Auto-Parent requires mic permission; demo
       with the in-app Test Simulator if no audio environment."
 
@@ -74,7 +78,7 @@ Check items off in order; ~everything before "Launch week" is doable solo.
 **Title (≤30 chars):** `Repeatless: Parent Soundboard` *(29)*
 
 **Short description (≤80):**
-`Record it once, tap it forever. Your own voice handles the repeating for you.` *(78)*
+`Record it once, tap it forever. Your own voice handles the repeating for you.` *(77)*
 
 **Full description:**
 
@@ -86,7 +90,7 @@ Check items off in order; ~everything before "Launch week" is doable solo.
 >
 > 🎙️ **Record once.** Your real voice, not a robot.
 > 🔊 **Tap to play.** Big colourful buttons, built for one hand.
-> 🏠 **Home-screen widget.** Fire off "Dinner time!" without opening the app.
+> 🏠 **Home-screen widget.** Your board, one tap from the home screen.
 > 🧠 **Auto-Parent AI (Pro).** Turn on listening mode and Repeatless hears the
 > whining, matches it, and answers with *your* clip — while you drink your
 > coffee. Speech is transcribed on your device; **your recordings and your
@@ -94,9 +98,8 @@ Check items off in order; ~everything before "Launch week" is doable solo.
 > 🎨 Boards for every routine: mornings, bedtime, car rides, homework.
 > 💾 Backup to a file you own. No account. No ads. No subscription.
 >
-> **Free:** full soundboard, 2 boards, widget, backup.
-> **Pro (one-time purchase):** unlimited boards & clips, Auto-Parent AI,
-> clip trimming, all themes.
+> **Free:** 2 boards of up to 12 clips each, the widget, and backup.
+> **Pro (one-time purchase):** unlimited boards & clips, plus Auto-Parent AI.
 >
 > Built by a parent who got tired of repeating himself. Say it once. Tap it
 > forever.
@@ -111,7 +114,7 @@ mom button · dad button · talking buttons
 2. Recording sheet — "Record it once, in YOUR voice."
 3. Auto-Parent listening — "It hears the whining. It answers. You don't."
 4. Privacy card — "Recordings never leave your phone."
-5. Widget on home screen — "Nag from the lock screen."
+5. Widget on home screen — "Your board, one tap away."
 6. Boards/themes — "Mornings. Bedtime. Car rides."
 
 Feature graphic: dark console background, big coral pad reading **"EAT YOUR
@@ -132,6 +135,25 @@ VEGGIES"**, finger mid-tap, tagline top-left.
       listing, convert testers into launch-day 5★ reviewers.
 - [ ] Apply for production access when eligible; answer Google's questionnaire
       honestly (they ask about testing learnings).
+
+## 4b. Path B — organization account (recommended, and it skips §4)
+
+If Prime Paints is a registered legal entity, take this route: organization accounts
+are **exempt from the 12-testers × 14-days rule**, so §4 above does not apply to you.
+
+- [ ] **Request a D‑U‑N‑S number first** — free, but takes days to a few weeks. It is
+      the long lead time on this path, so start it before anything else.
+- [ ] Create the Play developer account as an **organization**, using the exact legal
+      entity name and address on the D‑U‑N‑S record (mismatches restart verification).
+- [ ] Complete Play **identity + organization verification**.
+- [ ] You can then go straight to production access — but still run **one short
+      internal-testing round** (a handful of devices) purely for crash triage. Skipping
+      all testing to save a week is how a 1★ launch happens.
+- [ ] Note the knock-on effects: the entity you register becomes the **developer name
+      shown on the listing**, and it must match the controller named in `privacy.html`
+      and the support email in the listing. Keep all three consistent.
+
+Both paths are defined in [BUSINESS_PLAN.md](BUSINESS_PLAN.md) §11.
 
 ## 5. Marketing engine (start during testing, not after)
 
@@ -172,8 +194,9 @@ static host (GitHub Pages/Cloudflare Pages, $0).
 - Reply to **every** Play review (algorithmic + social proof).
 - Weekly: check vitals (ANR/crash), Auto-Parent API spend vs cap, conversion
   funnel (install → ≥3 pads recorded → Pro).
-- v1.1 (weeks 2–6): daily match cap, most-requested feature, in-app copy rebrand
-  pass, pricing experiment ($4.99 vs $6.99).
+- v1.1 (weeks 2–6): per-device daily match cap, prominent mic-use disclosure, decide
+  whether to gate or keep-free the currently un-gated extras (trimming, themes,
+  colour packs, trigger tags), most-requested feature, pricing experiment ($4.99 vs $6.99).
 - Month 3 gate: ≥5k installs & ≥2.5% conversion → invest (iOS eval, paid UA
   tests, localization). Below → iterate content formats, not the product.
 

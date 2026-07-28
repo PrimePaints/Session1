@@ -16,8 +16,14 @@
         </intent>
     </queries>
 
+    <!-- allowBackup is deliberately FALSE. Android Auto Backup would copy the user's
+         voice recordings (filesDir/audio_clips) and the clip database to their Google
+         Drive, which would contradict the app's core promise that recordings never
+         leave the device. Users move their data explicitly via Settings → Export
+         backup instead. The rules files below also exclude the audio and database, so
+         nothing sensitive is uploaded even if backup is ever re-enabled. -->
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"

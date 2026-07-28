@@ -21,7 +21,8 @@ The mark is a **coral soundboard pad with a bold "1" followed by sound waves** �
 
 - Launcher (adaptive): `android/app/src/main/res/drawable/ic_launcher_foreground.xml`
   on ground `#1A1620`; themed/monochrome variant `ic_launcher_monochrome.xml`.
-- Use the glyph ("1)))") alone as favicon/avatar; use pad + glyph elsewhere.
+- Web favicon / social avatar: `favicon.svg` at the repo root (pad + glyph), linked from
+  both `index.html` and `privacy.html`. Reuse it as the avatar on social handles.
 - Clear space: at least the width of the "1" stem on all sides. Don't rotate,
   outline, gradient-fill, or recolour the mark outside the palette.
 
@@ -67,8 +68,9 @@ rainbow appears.
 
 - Bundled at `android/app/src/main/res/font/` (SIL OFL 1.1 — `android/FONTS_LICENSE.md`);
   wired through Compose `Typography` in `ui/theme/Type.kt`.
-- Web equivalents: load the same two families from Google Fonts, or fall back to
-  `ui-rounded / system-ui`.
+- Web: the demo currently loads both families from Google Fonts. Self-hosting the OFL
+  files already in `res/font/` would remove that third-party request — preferable on a
+  page whose pitch is privacy. Fallback stack: `ui-rounded / system-ui`.
 - Timer/counters use tabular numerals.
 
 ## 5. Voice & tone
@@ -80,7 +82,9 @@ kids and never guilt-trip the parent.
   whining. It answers. You don't."
 - ❌ Robot-parent framing ("let AI raise them"), shame ("stop yelling at your
   kids"), corporate speak ("leverage voice automation").
-- Buttons say exactly what they do ("Record", "Unlock PRO · R89,99").
+- Buttons say exactly what they do ("Record", "Unlock PRO · <Play price>"). Never
+  hardcode a price in copy — the app always renders Google Play's localized price.
+  Pricing decisions live in BUSINESS_PLAN.md §7.
 - Privacy line, verbatim wherever data is mentioned: **"Your recordings never
   leave your phone."**
 
@@ -95,14 +99,19 @@ kids and never guilt-trip the parent.
 
 | Asset | Location |
 |---|---|
-| Android theme (colors/type/theme) | `android/app/src/main/java/com/example/ui/theme/` |
-| Launcher icons | `android/app/src/main/res/drawable/` + `mipmap-anydpi-v26/` |
+| Android theme (colors/type/theme) | `android/app/src/main/java/app/repeatless/ui/theme/` |
+| Launcher icons | `res/drawable/ic_launcher_foreground.xml` + `ic_launcher_monochrome.xml`, `res/mipmap-anydpi-v26/`, background `ic_launcher_background` in `res/values/colors.xml` |
 | Fonts | `android/app/src/main/res/font/` |
 | Widget styling | `android/app/src/main/res/layout/` + `values/colors.xml` |
 | Web demo | `index.html` (repo root) |
 | Privacy policy page | `privacy.html` (repo root) |
-| Store listing copy | `docs/LAUNCH_PLAYBOOK.md` §3 |
+| Web favicon / social avatar | `favicon.svg` (repo root) |
+| Android Material theme | `android/app/src/main/res/values/themes.xml` (`Theme.Repeatless`) |
+| Store listing copy | `LAUNCH_PLAYBOOK.md` §3 |
 
 Still to produce (Play listing): 512×512 icon export, 1024×500 feature graphic,
-6 phone screenshots (plan in the playbook). Legacy raster mipmaps for API 24–25
-should be regenerated from the new vector via Android Studio's Image Asset tool.
+6 phone screenshots (plan in [LAUNCH_PLAYBOOK.md](LAUNCH_PLAYBOOK.md) §3).
+
+⚠️ `res/mipmap-{m,h,xh,xxh,xxxh}dpi/` still hold the pre-rebrand AI-Studio raster icons,
+so **API 24–25 devices show the old icon** — regenerate them from the adaptive vector via
+Android Studio's Image Asset tool before launch.

@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+   Only the brand colours that XML resources actually need live here (the widget
+   layouts and the adaptive launcher icon). The canonical Repeatless palette is
+   ui/theme/Color.kt for the Compose UI, and docs/BRAND.md is the source of truth —
+   do not add duplicates of tokens that only Compose uses, or the two drift apart.
+-->
 <resources>
-    <!-- Repeatless brand palette (see docs/BRAND.md) -->
-    <color name="ground_dark">#FF1A1620</color>
+    <!-- Widget surface + text -->
     <color name="panel_dark">#FF241E2B</color>
-    <color name="panel2_dark">#FF2E2735</color>
-    <color name="line_dark">#FF3A3242</color>
     <color name="text_cream">#FFF4ECE2</color>
-    <color name="text_muted_dark">#FFA495AD</color>
-    <color name="rec_coral">#FFFF5147</color>
-    <color name="amber_accent">#FFFFB020</color>
+    <!-- Widget pads -->
     <color name="pad_coral">#FFFF6B61</color>
     <color name="ink_on_pad">#FF1A1620</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="black">#FF000000</color>
+    <!-- Adaptive launcher icon background (warm dark ground) -->
     <color name="ic_launcher_background">#FF1A1620</color>
 </resources>

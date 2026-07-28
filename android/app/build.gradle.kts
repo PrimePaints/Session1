@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-  namespace = "com.example"
+  namespace = "app.repeatless"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
@@ -41,10 +41,17 @@ android {
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       // Only sign with the upload key when a keystore is actually available, so debug
-      // workflows and CI without secrets still configure cleanly.
+      // workflows and CI without secrets still configure cleanly. Warn loudly when it
+      // is missing: an unsigned AAB builds successfully but Play rejects it on upload.
       val hasKeystore = System.getenv("KEYSTORE_PATH") != null || file("${rootDir}/upload-key.jks").exists()
       if (hasKeystore) {
         signingConfig = signingConfigs.getByName("release")
+      } else {
+        logger.warn(
+          "Repeatless: no signing keystore found — release output will be UNSIGNED and " +
+            "Google Play will reject it. Set KEYSTORE_PATH/STORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD " +
+            "or place the keystore at ${rootDir}/upload-key.jks (both are gitignored)."
+        )
       }
     }
   }
@@ -88,7 +95,6 @@ dependencies {
   implementation(libs.androidx.room.runtime)
   // Networking for the text-only Gemini Flash Lite call.
   implementation(libs.okhttp)
-  implementation(libs.logging.interceptor)
   implementation(libs.moshi.kotlin)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
