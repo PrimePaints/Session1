@@ -70,6 +70,10 @@ Check items off in order; ~everything before "Launch week" is doable solo.
 - [x] **Privacy policy URL**: `https://primepaints.github.io/Repeatless-Android/privacy.html`
       (`privacy.html` ships in this repo and is already live on GitHub Pages; move to
       `https://repeatless.app/privacy` once the domain is registered).
+      ⚠️ This URL is served by GitHub Pages from a specific branch. **Re-verify it
+      returns 200 after any change to the default branch or the Pages source**, and
+      before pasting it into the Play Console — a dead privacy-policy URL is a
+      standard listing rejection.
 - [ ] App access notes for reviewers: "Auto-Parent requires mic permission; demo
       with the in-app Test Simulator if no audio environment."
 
